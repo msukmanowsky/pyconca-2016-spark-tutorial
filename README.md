@@ -30,12 +30,12 @@ at mike.sukmanowsky@gmail.com or on [twitter](https://twitter.com/msukmanowsky).
 After unpacking Spark to a directory of your choice, try running the following
 command:
 
-** Mac/Linux **
+**Mac/Linux**
 ```
 > cd <path to spark>
 > bin/pyspark
 ```
-** Windows **
+**Windows**
 ```
 $ cd <path to spark>
 $ bin\pyspark.cmd
@@ -78,7 +78,7 @@ export SPARK_HOME="/path/to/spark/spark-2.0.1"
 
 Next, confirm that Zeppelin works.
 
-** Mac/Linux **
+**Mac/Linux**
 ```
 > cd <path to zeppelin>
 > bin/zeppelin-daemon.sh start
@@ -86,7 +86,7 @@ Next, confirm that Zeppelin works.
 
 (Use `bin/zeppelin-daemon.sh stop` to stop when done.)
 
-** Windows **
+**Windows**
 ```
 $ cd <path to zeppelin>
 $ bin\zeppelin.cmd
