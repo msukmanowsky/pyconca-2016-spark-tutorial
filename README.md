@@ -115,7 +115,7 @@ Click on the red "Download all (5.74GB)" link.
 ## Clone this repo
 
 ```
-git clone https://github.com/msukmanowsky/pycon-2016-tutorial.git
+git clone https://github.com/msukmanowsky/pyconca-2016-spark-tutorial.git
 ```
 
 More will be added to it prior to the talk at which point you'll just do
