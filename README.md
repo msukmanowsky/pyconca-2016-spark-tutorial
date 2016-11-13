@@ -122,7 +122,7 @@ Click on the red "Download all (5.74GB)" link.
 git clone https://github.com/msukmanowsky/pyconca-2016-spark-tutorial.git
 ```
 
-If you've already cloned, make sure you `git pull` for the lastest.
+If you've already cloned, make sure you `git pull` for the latest.
 
 ## Import and open the Zeppelin Notebook
 
