@@ -38,7 +38,5 @@ if __name__ == '__main__':
     spark = (SparkSession.builder
              .appName('sample_driver')
              .getOrCreate())
-    try:
+    with spark:
         main(spark)
-    finally:
-        spark.stop()
