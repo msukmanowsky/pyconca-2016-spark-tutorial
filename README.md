@@ -11,6 +11,10 @@ Mike Sukmanowsky ([@msukmanowsky](https://twitter.com/msukmanowsky))
 
 Sunday November 13th, 11:50am - 1pm
 
+# Slides
+
+https://docs.google.com/presentation/d/1Dagrb3Xi7myOU14CjfBfG-q5DmxbQWdLyobfMmseFt8
+
 # Getting Setup
 
 We only have an hour for the tutorial, so to ensure that we don't waste any
@@ -118,7 +122,15 @@ Click on the red "Download all (5.74GB)" link.
 git clone https://github.com/msukmanowsky/pyconca-2016-spark-tutorial.git
 ```
 
-More will be added to it prior to the talk at which point you'll just do
-`git pull` to get up to date.
+If you've already cloned, make sure you `git pull` for the lastest.
 
-Congrats! You have everything you need for the tutorial!
+## Import and open the Zeppelin Notebook
+
+With Zeppelin running, head to http://localhost:8080/ and click on the
+"Import note" link.
+
+Click "Choose a JSON here", and select the
+[zeppelin_notebook.json](zeppelin_notebook.json) file in this repo.
+
+You should now see a "PyCon Canada 2016 - PySpark Tutorial" notebook on your
+Zeppelin home screen.

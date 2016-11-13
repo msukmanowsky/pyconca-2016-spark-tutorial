@@ -1,0 +1,2056 @@
+{
+  "paragraphs": [
+    {
+      "text": "%md\n![PHP CEO](https://www.evernote.com/l/AAHWzj78DlFKfYJJ0YPrxoYvb2zSe1w9h7kB/image.jpg)\n\nOur boss, [PHP CEO](https://twitter.com/php_ceo) has just found out about a website called Wikipedia and wants us to help explain it to the board of directors. To quote our illustrious CEO, \"I found out that those Wikimedia idiots publish their traffic data _publically_, can you believe that? I\u0027m sure there\u0027s a way to make $50M doing data science on it so figure out a way to Hadoop it and make it happen! The company is counting on you!\"\n\nNever wanting to disappoint our CEO (or miss a paycheque), you decide to oblige.\n\nTurns out, Wikimedia does in fact publish clickstream data for users of Wikipedia.org and you find it available for download here https://datahub.io/dataset/wikipedia-clickstream/resource/be85cc68-d1e6-4134-804a-fd36b94dbb82. The entire data set is 5.7GB which is starting to feel like \"big data\" so you decide to analyze it using that thing you heard about on Hacker News - Apache Spark.\n\n[Quoting Wikipedia directly](https://meta.wikimedia.org/wiki/Research:Wikipedia_clickstream), we tell the boss that the dataset contains:\n\n\u003e counts of (referer, resource) pairs extracted from the request logs of Wikipedia. A referer is an HTTP header field that identifies the address of the webpage that linked to the resource being requested. The data shows how people get to a Wikipedia article and what links they click on. In other words, it gives a weighted network of articles, where each edge weight corresponds to how often people navigate from one page to another. To give an example, consider the figure below, which shows incoming and outgoing traffic to the \"London\" article on English Wikipedia during January 2015.\n\nHis eyes gloss over after the first sentence, but he fires back with a few questions for us:\n\n1. Is wikipedia.org even big? How many hits does it get?\n2. What do people even read on that site?\n\nAnd with that, we\u0027re off. Let\u0027s load in the data into a Spark [Resilient Distributed Dataset (RDD)](http://spark.apache.org/docs/latest/programming-guide.html#resilient-distributed-datasets-rdds) figure out what we\u0027re dealing with and try go get this monkey off our back.\n",
+      "dateUpdated": "Nov 12, 2016 9:31:49 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/markdown",
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478288491564_-439546265",
+      "id": "20161104-154131_1723437402",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003e\u003cimg src\u003d\"https://www.evernote.com/l/AAHWzj78DlFKfYJJ0YPrxoYvb2zSe1w9h7kB/image.jpg\" alt\u003d\"PHP CEO\" /\u003e\u003c/p\u003e\n\u003cp\u003eOur boss, \u003ca href\u003d\"https://twitter.com/php_ceo\"\u003ePHP CEO\u003c/a\u003e has just found out about a website called Wikipedia and wants us to help explain it to the board of directors. To quote our illustrious CEO, \u0026ldquo;I found out that those Wikimedia idiots publish their traffic data \u003cem\u003epublically\u003c/em\u003e, can you believe that? I\u0027m sure there\u0027s a way to make $50M doing data science on it so figure out a way to Hadoop it and make it happen! The company is counting on you!\u0026rdquo;\u003c/p\u003e\n\u003cp\u003eNever wanting to disappoint our CEO (or miss a paycheque), you decide to oblige.\u003c/p\u003e\n\u003cp\u003eTurns out, Wikimedia does in fact publish clickstream data for users of Wikipedia.org and you find it available for download here https://datahub.io/dataset/wikipedia-clickstream/resource/be85cc68-d1e6-4134-804a-fd36b94dbb82. The entire data set is 5.7GB which is starting to feel like \u0026ldquo;big data\u0026rdquo; so you decide to analyze it using that thing you heard about on Hacker News - Apache Spark.\u003c/p\u003e\n\u003cp\u003e\u003ca href\u003d\"https://meta.wikimedia.org/wiki/Research:Wikipedia_clickstream\"\u003eQuoting Wikipedia directly\u003c/a\u003e, we tell the boss that the dataset contains:\u003c/p\u003e\n\u003cblockquote\u003e\u003cp\u003ecounts of (referer, resource) pairs extracted from the request logs of Wikipedia. A referer is an HTTP header field that identifies the address of the webpage that linked to the resource being requested. The data shows how people get to a Wikipedia article and what links they click on. In other words, it gives a weighted network of articles, where each edge weight corresponds to how often people navigate from one page to another. To give an example, consider the figure below, which shows incoming and outgoing traffic to the \u0026ldquo;London\u0026rdquo; article on English Wikipedia during January 2015.\u003c/p\u003e\n\u003c/blockquote\u003e\n\u003cp\u003eHis eyes gloss over after the first sentence, but he fires back with a few questions for us:\u003c/p\u003e\n\u003col\u003e\n\u003cli\u003eIs wikipedia.org even big? How many hits does it get?\u003c/li\u003e\n\u003cli\u003eWhat do people even read on that site?\u003c/li\u003e\n\u003c/ol\u003e\n\u003cp\u003eAnd with that, we\u0027re off. Let\u0027s load in the data into a Spark \u003ca href\u003d\"http://spark.apache.org/docs/latest/programming-guide.html#resilient-distributed-datasets-rdds\"\u003eResilient Distributed Dataset (RDD)\u003c/a\u003e figure out what we\u0027re dealing with and try go get this monkey off our back.\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 4, 2016 3:41:31 AM",
+      "dateStarted": "Nov 12, 2016 9:31:49 PM",
+      "dateFinished": "Nov 12, 2016 9:31:49 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\nfrom __future__ import print_function\nfrom pprint import pprint\n\nCLICKSTREAM_FILE \u003d \u0027/Users/mikesukmanowsky/Downloads/1305770/2015_01_en_clickstream.tsv.gz\u0027\nclickstream \u003d sc.textFile(CLICKSTREAM_FILE)  # sc \u003d SparkContext which is available for us automatically since we\u0027re using a \"%pyspark\" paragraph in Zeppelin \nclickstream",
+      "dateUpdated": "Nov 12, 2016 9:01:31 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478288525992_873647704",
+      "id": "20161104-154205_1326198179",
+      "dateCreated": "Nov 4, 2016 3:42:05 AM",
+      "dateStarted": "Nov 10, 2016 10:18:11 PM",
+      "dateFinished": "Nov 10, 2016 10:18:39 PM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\n\nSo what the heck is this `clickstream` thing that we just loaded anyway? Spark says `MapPartitionsRDD[40]`. Let\u0027s ignore the `MapPartitions` part and focus on what\u0027s important: **RDD**.\n\n**Resilient Distributed Dataset or RDD** is Spark\u0027s core unit of abstraction. If you _really_ understand RDDs, then you\u0027ll understand a lot of what Spark is about. An RDD is just a collection of things which is partitioned so that Spark can perform computation on it in parallel. This is a core concept of \"big data\" processing. Take big data, and split into smaller parts so they can be operated on independently and in parallel.\n\nIn this case, we created an RDD out of a gzip file which begs the question, if an RDD is a collection of things, what is in our RDD?",
+      "dateUpdated": "Nov 12, 2016 9:31:46 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478567658068_-1920890636",
+      "id": "20161107-201418_1676567479",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003eSo what the heck is this \u003ccode\u003eclickstream\u003c/code\u003e thing that we just loaded anyway? Spark says \u003ccode\u003eMapPartitionsRDD[40]\u003c/code\u003e. Let\u0027s ignore the \u003ccode\u003eMapPartitions\u003c/code\u003e part and focus on what\u0027s important: \u003cstrong\u003eRDD\u003c/strong\u003e.\u003c/p\u003e\n\u003cp\u003e\u003cstrong\u003eResilient Distributed Dataset or RDD\u003c/strong\u003e is Spark\u0027s core unit of abstraction. If you \u003cem\u003ereally\u003c/em\u003e understand RDDs, then you\u0027ll understand a lot of what Spark is about. An RDD is just a collection of things which is partitioned so that Spark can perform computation on it in parallel. This is a core concept of \u0026ldquo;big data\u0026rdquo; processing. Take big data, and split into smaller parts so they can be operated on independently and in parallel.\u003c/p\u003e\n\u003cp\u003eIn this case, we created an RDD out of a gzip file which begs the question, if an RDD is a collection of things, what is in our RDD?\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 7, 2016 8:14:18 AM",
+      "dateStarted": "Nov 12, 2016 9:31:46 PM",
+      "dateFinished": "Nov 12, 2016 9:31:46 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\n\nclickstream.first()",
+      "dateUpdated": "Nov 10, 2016 9:32:52 AM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/python"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478567933184_-1355711471",
+      "id": "20161107-201853_1840213788",
+      "dateCreated": "Nov 7, 2016 8:18:53 AM",
+      "dateStarted": "Nov 10, 2016 9:32:54 AM",
+      "dateFinished": "Nov 10, 2016 9:33:20 AM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\n\nTurns out RDDs have a handy `first()` method which returns the first element in the collection which turns out to be the first line in the gzip file we loaded up. So `textFile` returns an RDD which is a collection of the lines in the file.\n\nLet\u0027s see how many lines are in that file by using the `count()` method on the RDD.",
+      "dateUpdated": "Nov 12, 2016 9:31:53 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/markdown",
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478567943934_294491886",
+      "id": "20161107-201903_1247149665",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003eTurns out RDDs have a handy \u003ccode\u003efirst()\u003c/code\u003e method which returns the first element in the collection which turns out to be the first line in the gzip file we loaded up. So \u003ccode\u003etextFile\u003c/code\u003e returns an RDD which is a collection of the lines in the file.\u003c/p\u003e\n\u003cp\u003eLet\u0027s see how many lines are in that file by using the \u003ccode\u003ecount()\u003c/code\u003e method on the RDD.\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 7, 2016 8:19:03 AM",
+      "dateStarted": "Nov 12, 2016 9:31:53 PM",
+      "dateFinished": "Nov 12, 2016 9:31:53 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\n\u0027{:,}\u0027.format(clickstream.count())",
+      "dateUpdated": "Nov 10, 2016 9:32:52 AM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/python"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478568174925_-2062309665",
+      "id": "20161107-202254_709908107",
+      "dateCreated": "Nov 7, 2016 8:22:54 AM",
+      "dateStarted": "Nov 10, 2016 9:33:20 AM",
+      "dateFinished": "Nov 10, 2016 9:34:17 AM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\nAlmost 22 million lines. Not exactly big data, more like a little large but that\u0027s ok since we\u0027re just working locally.\n\nOne problem we have immediately is that the `clickstream` RDD isn\u0027t very useful since the data isn\u0027t parsed at all.\n\nThe clickstream data source in question actually has 5 fields delimited by a tab:\n\n* `prev_id`: if the referer doesn\u0027t correspond to an article in English Wikipedia, this is empty. Otherwise, it\u0027ll contain the unique MediaWiki page ID of the article correspodning to the referer.\n* `curr_id` the MediaWiki page ID of the article requested, this is always present\n* `n` the number of occurances (page views) of the `(referer, resource)` pair\n* `prev_title`: if referer was a Wikipedia article, this is the title of that article. Otherwise, this gets renamed to something like `other-\u003ewikipedia` (outside the English Wikipedia namespace), `other-empty` (empty referrer), `other-internal` (any other Wikimedia project, `other-google` (any Google site), `other-yahoo` (any Yahoo! site), `other-bing` (any Bing site), `other-facebook`, `other-twitter` and `other-other` (any other site).\n* `curr_title` the title of the Wikipedia article (more helpful than looking at the ID.\n\n\nOk, so we need to do a pretty simple Python string split on a tab delimiter. How do we do that? We can use one of Spark\u0027s **transformation** functions, `map()` which applies a function to all elements in a collection and returns a new collection.",
+      "dateUpdated": "Nov 12, 2016 9:31:55 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/markdown",
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478289568712_1470082354",
+      "id": "20161104-155928_1642833557",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003eAlmost 22 million lines. Not exactly big data, more like a little large but that\u0027s ok since we\u0027re just working locally.\u003c/p\u003e\n\u003cp\u003eOne problem we have immediately is that the \u003ccode\u003eclickstream\u003c/code\u003e RDD isn\u0027t very useful since the data isn\u0027t parsed at all.\u003c/p\u003e\n\u003cp\u003eThe clickstream data source in question actually has 5 fields delimited by a tab:\u003c/p\u003e\n\u003cul\u003e\n\u003cli\u003e\u003ccode\u003eprev_id\u003c/code\u003e: if the referer doesn\u0027t correspond to an article in English Wikipedia, this is empty. Otherwise, it\u0027ll contain the unique MediaWiki page ID of the article correspodning to the referer.\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003ecurr_id\u003c/code\u003e the MediaWiki page ID of the article requested, this is always present\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003en\u003c/code\u003e the number of occurances (page views) of the \u003ccode\u003e(referer, resource)\u003c/code\u003e pair\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003eprev_title\u003c/code\u003e: if referer was a Wikipedia article, this is the title of that article. Otherwise, this gets renamed to something like \u003ccode\u003eother-\u0026gt;wikipedia\u003c/code\u003e (outside the English Wikipedia namespace), \u003ccode\u003eother-empty\u003c/code\u003e (empty referrer), \u003ccode\u003eother-internal\u003c/code\u003e (any other Wikimedia project, \u003ccode\u003eother-google\u003c/code\u003e (any Google site), \u003ccode\u003eother-yahoo\u003c/code\u003e (any Yahoo! site), \u003ccode\u003eother-bing\u003c/code\u003e (any Bing site), \u003ccode\u003eother-facebook\u003c/code\u003e, \u003ccode\u003eother-twitter\u003c/code\u003e and \u003ccode\u003eother-other\u003c/code\u003e (any other site).\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003ecurr_title\u003c/code\u003e the title of the Wikipedia article (more helpful than looking at the ID.\u003c/li\u003e\n\u003c/ul\u003e\n\u003cp\u003eOk, so we need to do a pretty simple Python string split on a tab delimiter. How do we do that? We can use one of Spark\u0027s \u003cstrong\u003etransformation\u003c/strong\u003e functions, \u003ccode\u003emap()\u003c/code\u003e which applies a function to all elements in a collection and returns a new collection.\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 4, 2016 3:59:28 AM",
+      "dateStarted": "Nov 12, 2016 9:31:55 PM",
+      "dateFinished": "Nov 12, 2016 9:31:55 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\nparsed \u003d clickstream.map(lambda line: line.split(\u0027\\t\u0027))\nparsed",
+      "dateUpdated": "Nov 10, 2016 9:32:53 AM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/python"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478396818605_712890923",
+      "id": "20161105-214658_1458525638",
+      "dateCreated": "Nov 5, 2016 9:46:58 AM",
+      "dateStarted": "Nov 10, 2016 9:33:20 AM",
+      "dateFinished": "Nov 10, 2016 9:34:17 AM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\nUh wait, why didn\u0027t that give us some output that we could see? That\u0027s because all transformations in Spark are lazy.\n\nWhen we called `map()` on our `clickstream` RDD, Spark returned a new RDD. Under the hood, RDDs are basically just directed acyclic graphs (DAGs) that outline the transformations required to get to a final result. This concept is powerful and I want to drive it home a bit. It\u0027s important to know that **all transformations return new RDDs**. Or, put another way, **RDDs are immutable**. You never have to be worried about modifying an RDD \"in-place\", because any time you modify an RDD, you\u0027ll get a new RDD.\n\nLet\u0027s say that we needed a version of the RDD with strings uppercased and in their original form.\n\n```\nclickstream_parsed \u003d clickstream.map(lambda line: line.split(\u0027\\t\u0027)\nclickstream_upper \u003d clickstream_parsed.map(lambda parts: [x.upper() for x in parts])\n```\n\nWe now have a parsed uppercased RDD and the parsed RDD in the original case. Since under the hood, RDDs are just DAGs assigning these two variables is not expensive at all. It\u0027s just storing instructions on how to produce data:\n\n* `clickstream_parsed`: `Load textFile() -\u003e apply line.split()`\n* `clickstream_upper`: `Load textFile() -\u003e apply line.split() -\u003e apply [x.upper() for x in parts]`\n\nSpark will also try to be clever when a part two children in a DAG have a common ancestor and will not compute the same transformations twice.\n\nAnything other transformations we do later just adds more steps to the DAG. If parts of your program refer to `clickstream_upper`, later on, you don\u0027t have to be worried about what another part did to this RDD, `clickstream_upper` is immutable and will always refer to the original transformation.\n\nSo how do we get to see the result of our `map()`? We can use `first()` again, but for fun, let\u0027s use another RDD method `take()` which takes the first _n_ elements from an RDD.",
+      "dateUpdated": "Nov 12, 2016 9:31:58 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/markdown",
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478398272610_-964710637",
+      "id": "20161105-221112_1697982578",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003eUh wait, why didn\u0027t that give us some output that we could see? That\u0027s because all transformations in Spark are lazy.\u003c/p\u003e\n\u003cp\u003eWhen we called \u003ccode\u003emap()\u003c/code\u003e on our \u003ccode\u003eclickstream\u003c/code\u003e RDD, Spark returned a new RDD. Under the hood, RDDs are basically just directed acyclic graphs (DAGs) that outline the transformations required to get to a final result. This concept is powerful and I want to drive it home a bit. It\u0027s important to know that \u003cstrong\u003eall transformations return new RDDs\u003c/strong\u003e. Or, put another way, \u003cstrong\u003eRDDs are immutable\u003c/strong\u003e. You never have to be worried about modifying an RDD \u0026ldquo;in-place\u0026rdquo;, because any time you modify an RDD, you\u0027ll get a new RDD.\u003c/p\u003e\n\u003cp\u003eLet\u0027s say that we needed a version of the RDD with strings uppercased and in their original form.\u003c/p\u003e\n\u003cpre\u003e\u003ccode\u003eclickstream_parsed \u003d clickstream.map(lambda line: line.split(\u0027\\t\u0027)\nclickstream_upper \u003d clickstream_parsed.map(lambda parts: [x.upper() for x in parts])\n\u003c/code\u003e\u003c/pre\u003e\n\u003cp\u003eWe now have a parsed uppercased RDD and the parsed RDD in the original case. Since under the hood, RDDs are just DAGs assigning these two variables is not expensive at all. It\u0027s just storing instructions on how to produce data:\u003c/p\u003e\n\u003cul\u003e\n\u003cli\u003e\u003ccode\u003eclickstream_parsed\u003c/code\u003e: \u003ccode\u003eLoad textFile() -\u0026gt; apply line.split()\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003eclickstream_upper\u003c/code\u003e: \u003ccode\u003eLoad textFile() -\u0026gt; apply line.split() -\u0026gt; apply [x.upper() for x in parts]\u003c/code\u003e\u003c/li\u003e\n\u003c/ul\u003e\n\u003cp\u003eSpark will also try to be clever when a part two children in a DAG have a common ancestor and will not compute the same transformations twice.\u003c/p\u003e\n\u003cp\u003eAnything other transformations we do later just adds more steps to the DAG. If parts of your program refer to \u003ccode\u003eclickstream_upper\u003c/code\u003e, later on, you don\u0027t have to be worried about what another part did to this RDD, \u003ccode\u003eclickstream_upper\u003c/code\u003e is immutable and will always refer to the original transformation.\u003c/p\u003e\n\u003cp\u003eSo how do we get to see the result of our \u003ccode\u003emap()\u003c/code\u003e? We can use \u003ccode\u003efirst()\u003c/code\u003e again, but for fun, let\u0027s use another RDD method \u003ccode\u003etake()\u003c/code\u003e which takes the first \u003cem\u003en\u003c/em\u003e elements from an RDD.\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 5, 2016 10:11:12 AM",
+      "dateStarted": "Nov 12, 2016 9:31:58 PM",
+      "dateFinished": "Nov 12, 2016 9:31:58 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\npprint(parsed.take(5))",
+      "dateUpdated": "Nov 10, 2016 9:32:53 AM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/python"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478569438111_-1629077470",
+      "id": "20161107-204358_2060716368",
+      "dateCreated": "Nov 7, 2016 8:43:58 AM",
+      "dateStarted": "Nov 10, 2016 9:34:17 AM",
+      "dateFinished": "Nov 10, 2016 9:34:17 AM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\nThat\u0027s better!\n\nBoth `first()` and `take()` are examples of a second class of functions on RDDs: **actions**. **Actions** trigger Spark to actually execute the steps in the DAG you\u0027ve been building up and perform some action. In this case, `first()` and `take()` load a sample of the data, evaluate the `split()` function, and return results to the driver script, this notebook, for us to print out.\n\nRDDs have quite a few of [**transformations**](http://spark.apache.org/docs/latest/programming-guide.html#transformations) and [**actions**](http://spark.apache.org/docs/latest/programming-guide.html#actions) but here are a few of the more popular ones you\u0027ll use:\n\n**Transformations**:\n\n* `map(func)`: return a new data set with `func()` applied to all elements\n* `filter(func)`: return a new dataset formed by selecting those elements of the source on which `func()` returns `true`\n* `sortByKey([ascending], [numTasks])`: sort an RDD by key instead of value (we\u0027ll get to the key vs. value distinction in a second)\n* `reduceByKey(func, [numTasks])`: similar to the Python `reduce()` function\n* `aggregateByKey(zeroValue)(seqOp, combOp, [numTasks])`: also similar to Python\u0027s `reduce()`, but with customization options (we\u0027ll come back to this)\n* `repartition()`: reshuffle the data in the RDD randomly to create either more or fewer partitions and balance it across them\n\n**Actions**:\n\n* `first()`, `take()`\n* `collect()`: return all the elements of the dataset as an array at the driver program.\n* `count()`: count the number of elements in the RDD\n* `saveAsTextFile(path)`: write the elements of the dataset as a text file (or set of text files) in a given directory in the local filesystem, HDFS or any other Hadoop-supported file system\n\nBefore we keep going, something is bugging me. That `count()` that we did seemed to take a _really_ long time, wouldn\u0027t pure Python be faster at that?",
+      "dateUpdated": "Nov 12, 2016 9:32:02 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/markdown",
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478569458083_-1878764182",
+      "id": "20161107-204418_803807675",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003eThat\u0027s better!\u003c/p\u003e\n\u003cp\u003eBoth \u003ccode\u003efirst()\u003c/code\u003e and \u003ccode\u003etake()\u003c/code\u003e are examples of a second class of functions on RDDs: \u003cstrong\u003eactions\u003c/strong\u003e. \u003cstrong\u003eActions\u003c/strong\u003e trigger Spark to actually execute the steps in the DAG you\u0027ve been building up and perform some action. In this case, \u003ccode\u003efirst()\u003c/code\u003e and \u003ccode\u003etake()\u003c/code\u003e load a sample of the data, evaluate the \u003ccode\u003esplit()\u003c/code\u003e function, and return results to the driver script, this notebook, for us to print out.\u003c/p\u003e\n\u003cp\u003eRDDs have quite a few of \u003ca href\u003d\"http://spark.apache.org/docs/latest/programming-guide.html#transformations\"\u003e\u003cstrong\u003etransformations\u003c/strong\u003e\u003c/a\u003e and \u003ca href\u003d\"http://spark.apache.org/docs/latest/programming-guide.html#actions\"\u003e\u003cstrong\u003eactions\u003c/strong\u003e\u003c/a\u003e but here are a few of the more popular ones you\u0027ll use:\u003c/p\u003e\n\u003cp\u003e\u003cstrong\u003eTransformations\u003c/strong\u003e:\u003c/p\u003e\n\u003cul\u003e\n\u003cli\u003e\u003ccode\u003emap(func)\u003c/code\u003e: return a new data set with \u003ccode\u003efunc()\u003c/code\u003e applied to all elements\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003efilter(func)\u003c/code\u003e: return a new dataset formed by selecting those elements of the source on which \u003ccode\u003efunc()\u003c/code\u003e returns \u003ccode\u003etrue\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003esortByKey([ascending], [numTasks])\u003c/code\u003e: sort an RDD by key instead of value (we\u0027ll get to the key vs. value distinction in a second)\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003ereduceByKey(func, [numTasks])\u003c/code\u003e: similar to the Python \u003ccode\u003ereduce()\u003c/code\u003e function\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003eaggregateByKey(zeroValue)(seqOp, combOp, [numTasks])\u003c/code\u003e: also similar to Python\u0027s \u003ccode\u003ereduce()\u003c/code\u003e, but with customization options (we\u0027ll come back to this)\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003erepartition()\u003c/code\u003e: reshuffle the data in the RDD randomly to create either more or fewer partitions and balance it across them\u003c/li\u003e\n\u003c/ul\u003e\n\u003cp\u003e\u003cstrong\u003eActions\u003c/strong\u003e:\u003c/p\u003e\n\u003cul\u003e\n\u003cli\u003e\u003ccode\u003efirst()\u003c/code\u003e, \u003ccode\u003etake()\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003ecollect()\u003c/code\u003e: return all the elements of the dataset as an array at the driver program.\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003ecount()\u003c/code\u003e: count the number of elements in the RDD\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003esaveAsTextFile(path)\u003c/code\u003e: write the elements of the dataset as a text file (or set of text files) in a given directory in the local filesystem, HDFS or any other Hadoop-supported file system\u003c/li\u003e\n\u003c/ul\u003e\n\u003cp\u003eBefore we keep going, something is bugging me. That \u003ccode\u003ecount()\u003c/code\u003e that we did seemed to take a \u003cem\u003ereally\u003c/em\u003e long time, wouldn\u0027t pure Python be faster at that?\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 7, 2016 8:44:18 AM",
+      "dateStarted": "Nov 12, 2016 9:32:02 PM",
+      "dateFinished": "Nov 12, 2016 9:32:02 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\nimport gzip\n\nwith gzip.open(CLICKSTREAM_FILE) as fp:\n    for count, _ in enumerate(fp):\n        pass\n    count +\u003d 1\n\n\u0027{:,}\u0027.format(count)",
+      "dateUpdated": "Nov 10, 2016 9:32:53 AM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478570540787_-1443862773",
+      "id": "20161107-210220_1849083685",
+      "dateCreated": "Nov 7, 2016 9:02:20 AM",
+      "dateStarted": "Nov 10, 2016 9:34:17 AM",
+      "dateFinished": "Nov 10, 2016 9:35:01 AM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\n\n54s versus 42s...Alright guys, tutorial is over. Python clearly rocks and Spark sucks.\n\n...or does it?\n\nI mentioned before that Spark gets most of its magic from the fact that it can operate on chunks of data in parallel. This is something that we can do in Python (think `threading` or `multiprocessing`), but it\u0027s non-trivial. Let\u0027s ask Spark how many partitions or chunks it\u0027s currently using for our dataset.",
+      "dateUpdated": "Nov 12, 2016 9:32:06 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/markdown",
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478570722555_-1982451581",
+      "id": "20161107-210522_35023188",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003e54s versus 42s\u0026hellip;Alright guys, tutorial is over. Python clearly rocks and Spark sucks.\u003c/p\u003e\n\u003cp\u003e\u0026hellip;or does it?\u003c/p\u003e\n\u003cp\u003eI mentioned before that Spark gets most of its magic from the fact that it can operate on chunks of data in parallel. This is something that we can do in Python (think \u003ccode\u003ethreading\u003c/code\u003e or \u003ccode\u003emultiprocessing\u003c/code\u003e), but it\u0027s non-trivial. Let\u0027s ask Spark how many partitions or chunks it\u0027s currently using for our dataset.\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 7, 2016 9:05:22 AM",
+      "dateStarted": "Nov 12, 2016 9:32:06 PM",
+      "dateFinished": "Nov 12, 2016 9:32:06 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\n\nclickstream.getNumPartitions()",
+      "dateUpdated": "Nov 10, 2016 9:32:53 AM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/python"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478570757658_2059213021",
+      "id": "20161107-210557_1180159027",
+      "dateCreated": "Nov 7, 2016 9:05:57 AM",
+      "dateStarted": "Nov 10, 2016 9:34:18 AM",
+      "dateFinished": "Nov 10, 2016 9:35:01 AM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\n\nWhat the hell Spark!? You have all this computing power at your disposal and you\u0027re treating my data as if it\u0027s one contigious blob?\n\nIf we ran this on a 200 cluster node, we wouldn\u0027t even keep a single node busy!\n\nWhat happened behind the scenes was dependent on two things:\n\n1. We\u0027re only reading in one file\n2. That one file happens to be gzipped which is an encoding that cannot be \"split\" - only one process can decompresses the file completely (there are compression algos that allow multiple processes to decompress a chunk like [LZO](http://www.oberhumer.com/opensource/lzo/))\n\nSince we\u0027re reading in exactly one file that can only be processed by a single core, Spark did the only thing it could and left it all in a single partition.\n\nIf we want to take advantage of the multiple cores on our laptops or, eventually, the multiple nodes in our cluster, we need to **repartition** our data and redistribute it. Let\u0027s do that now and see if we can speed things up.",
+      "dateUpdated": "Nov 12, 2016 9:32:09 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/markdown",
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478570975923_-1258189398",
+      "id": "20161107-210935_8134385",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003eWhat the hell Spark!? You have all this computing power at your disposal and you\u0027re treating my data as if it\u0027s one contigious blob?\u003c/p\u003e\n\u003cp\u003eIf we ran this on a 200 cluster node, we wouldn\u0027t even keep a single node busy!\u003c/p\u003e\n\u003cp\u003eWhat happened behind the scenes was dependent on two things:\u003c/p\u003e\n\u003col\u003e\n\u003cli\u003eWe\u0027re only reading in one file\u003c/li\u003e\n\u003cli\u003eThat one file happens to be gzipped which is an encoding that cannot be \u0026ldquo;split\u0026rdquo; - only one process can decompresses the file completely (there are compression algos that allow multiple processes to decompress a chunk like \u003ca href\u003d\"http://www.oberhumer.com/opensource/lzo/\"\u003eLZO\u003c/a\u003e)\u003c/li\u003e\n\u003c/ol\u003e\n\u003cp\u003eSince we\u0027re reading in exactly one file that can only be processed by a single core, Spark did the only thing it could and left it all in a single partition.\u003c/p\u003e\n\u003cp\u003eIf we want to take advantage of the multiple cores on our laptops or, eventually, the multiple nodes in our cluster, we need to \u003cstrong\u003erepartition\u003c/strong\u003e our data and redistribute it. Let\u0027s do that now and see if we can speed things up.\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 7, 2016 9:09:35 AM",
+      "dateStarted": "Nov 12, 2016 9:32:09 PM",
+      "dateFinished": "Nov 12, 2016 9:32:09 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\n\nclickstream \u003d clickstream.repartition(sc.defaultParallelism)\n\u0027{:,}\u0027.format(clickstream.count())",
+      "dateUpdated": "Nov 10, 2016 10:18:55 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/python"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478571389447_-481616165",
+      "id": "20161107-211629_85220792",
+      "dateCreated": "Nov 7, 2016 9:16:29 AM",
+      "dateStarted": "Nov 10, 2016 10:18:41 PM",
+      "dateFinished": "Nov 10, 2016 10:18:41 PM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\n\n`sc.defaultParallelism` usually corresponds to the number of cores your CPU has when running Spark locally.\n\nI have 8 cores so I effectively asked Spark to create 8 partitions with equal amounts of data. Spark then counted up the elements in each partition in parallel threads and then summed the result.\n\n44s isn\u0027t amazing, but at least we\u0027re on par with pure Python now. Repartitioning isn\u0027t free and Spark programs do have some overhead so in this trivial example, it\u0027s pretty rough to beat a pure Python line count. But now that the data is partitioned, all subsequent operations we do on it are that much faster. Put another way, with one call to `repartition()` we just achieved a theoretical 8x increase in performance.\n\n**Data partitioning is very important in Spark**, it\u0027s usually the key reason why your Spark job either runs fast and utilizes all resources or runs slow as your cores sit idle.\n\nTo get a better idea of how partitioning helped us, let\u0027s look at a slightly harder example: summing up the total number of pageviews in our dataset.",
+      "dateUpdated": "Nov 12, 2016 9:32:12 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/markdown",
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478571483128_1792019972",
+      "id": "20161107-211803_1176928010",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003e\u003ccode\u003esc.defaultParallelism\u003c/code\u003e usually corresponds to the number of cores your CPU has when running Spark locally.\u003c/p\u003e\n\u003cp\u003eI have 8 cores so I effectively asked Spark to create 8 partitions with equal amounts of data. Spark then counted up the elements in each partition in parallel threads and then summed the result.\u003c/p\u003e\n\u003cp\u003e44s isn\u0027t amazing, but at least we\u0027re on par with pure Python now. Repartitioning isn\u0027t free and Spark programs do have some overhead so in this trivial example, it\u0027s pretty rough to beat a pure Python line count. But now that the data is partitioned, all subsequent operations we do on it are that much faster. Put another way, with one call to \u003ccode\u003erepartition()\u003c/code\u003e we just achieved a theoretical 8x increase in performance.\u003c/p\u003e\n\u003cp\u003e\u003cstrong\u003eData partitioning is very important in Spark\u003c/strong\u003e, it\u0027s usually the key reason why your Spark job either runs fast and utilizes all resources or runs slow as your cores sit idle.\u003c/p\u003e\n\u003cp\u003eTo get a better idea of how partitioning helped us, let\u0027s look at a slightly harder example: summing up the total number of pageviews in our dataset.\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 7, 2016 9:18:03 AM",
+      "dateStarted": "Nov 12, 2016 9:32:12 PM",
+      "dateFinished": "Nov 12, 2016 9:32:12 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\ndef parse_line(line):\n    \u0027\u0027\u0027Parse a line in the log file, but ensure that the \u0027n\u0027 or \u0027views\u0027 column is\n    convereted to an integer.\u0027\u0027\u0027\n    parts \u003d line.split(\u0027\\t\u0027)\n    parts[2] \u003d int(parts[2])\n    return parts",
+      "dateUpdated": "Nov 10, 2016 10:19:30 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478572100247_994143222",
+      "id": "20161107-212820_1637898955",
+      "dateCreated": "Nov 7, 2016 9:28:20 AM",
+      "dateStarted": "Nov 10, 2016 10:19:30 PM",
+      "dateFinished": "Nov 10, 2016 10:19:30 PM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\nwith gzip.open(CLICKSTREAM_FILE) as fp:\n    views \u003d 0\n    for line in fp:\n        parsed \u003d parse_line(line.strip(\u0027\\n\u0027))\n        views +\u003d parsed[2]\n\n\u0027{:,}\u0027.format(views)",
+      "dateUpdated": "Nov 10, 2016 10:19:39 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478834357179_435356742",
+      "id": "20161110-221917_2093806364",
+      "dateCreated": "Nov 10, 2016 10:19:17 PM",
+      "status": "READY",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\nfrom operator import add\n\n(clickstream\n .map(parse_line)\n .map(lambda parts: parts[2])  # just get views\n .reduce(add)) # identical to Python\u0027s reduce(add, [1, 2, 3, 4])",
+      "dateUpdated": "Nov 12, 2016 9:32:31 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/python"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478572303140_-140791057",
+      "id": "20161107-213143_497530321",
+      "dateCreated": "Nov 7, 2016 9:31:43 AM",
+      "dateStarted": "Nov 10, 2016 9:35:51 AM",
+      "dateFinished": "Nov 10, 2016 9:37:55 AM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\n\nWe went from 1m18s in pure Python to 32s in Spark - a 59% reduction. Maybe this Spark thing isn\u0027t so bad after all!\n\nAlthough this is only running on our local laptops, what you\u0027ve just demonstrated is the key to what allows Spark to process petabyte datasets in minutes (or even seconds). It gives you a horizontal scaling escape hatch for your data. No matter how much data you have, Spark can handle it so long as you can provide it with the hardware. If you can\u0027t, you may have to wait a bit longer, but you still get the benefits of massively parallel processing.\n\nThere\u0027s one last trick I want to show before we review what we\u0027ve learned which ultimately made people pay a lot of attention to Spark: **caching**.\n\nOur clickstream dataset would probably be a lot faster if we could hold most of it in-memory. Turns out, Spark has an easy way to do that:",
+      "dateUpdated": "Nov 12, 2016 9:32:44 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/markdown",
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478572422149_-2100196256",
+      "id": "20161107-213342_125686747",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003eWe went from 1m18s in pure Python to 32s in Spark - a 59% reduction. Maybe this Spark thing isn\u0027t so bad after all!\u003c/p\u003e\n\u003cp\u003eAlthough this is only running on our local laptops, what you\u0027ve just demonstrated is the key to what allows Spark to process petabyte datasets in minutes (or even seconds). It gives you a horizontal scaling escape hatch for your data. No matter how much data you have, Spark can handle it so long as you can provide it with the hardware. If you can\u0027t, you may have to wait a bit longer, but you still get the benefits of massively parallel processing.\u003c/p\u003e\n\u003cp\u003eThere\u0027s one last trick I want to show before we review what we\u0027ve learned which ultimately made people pay a lot of attention to Spark: \u003cstrong\u003ecaching\u003c/strong\u003e.\u003c/p\u003e\n\u003cp\u003eOur clickstream dataset would probably be a lot faster if we could hold most of it in-memory. Turns out, Spark has an easy way to do that:\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 7, 2016 9:33:42 AM",
+      "dateStarted": "Nov 12, 2016 9:32:43 PM",
+      "dateFinished": "Nov 12, 2016 9:32:43 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\nfrom pyspark import StorageLevel\n\nclickstream_parsed \u003d clickstream.map(parse_line)\n# Store whatever you can in memory, but spill anything that doesn\u0027t fit onto disk\nclickstream_parsed.persist(StorageLevel.MEMORY_AND_DISK)",
+      "dateUpdated": "Nov 12, 2016 5:03:00 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/python"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478573792808_-1289556038",
+      "id": "20161107-215632_61079791",
+      "dateCreated": "Nov 7, 2016 9:56:32 AM",
+      "dateStarted": "Nov 10, 2016 10:19:38 PM",
+      "dateFinished": "Nov 10, 2016 10:19:38 PM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\n\n(clickstream_parsed\n .map(lambda parts: parts[2])\n .reduce(add))",
+      "dateUpdated": "Nov 10, 2016 10:19:39 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478834343787_-1536896768",
+      "id": "20161110-221903_458344037",
+      "dateCreated": "Nov 10, 2016 10:19:03 PM",
+      "status": "READY",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\n\nThis took a bit longer than our last run, and the reason is that Spark loaded up the data in each partition into JVM heap. When it hit memory limits, it spilled data to disk.\n\nNow that our cache is warmed though, let\u0027s see how fast we can get a sum.",
+      "dateUpdated": "Nov 12, 2016 9:32:27 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478574023768_199562291",
+      "id": "20161107-220023_9554624",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003eThis took a bit longer than our last run, and the reason is that Spark loaded up the data in each partition into JVM heap. When it hit memory limits, it spilled data to disk.\u003c/p\u003e\n\u003cp\u003eNow that our cache is warmed though, let\u0027s see how fast we can get a sum.\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 7, 2016 10:00:23 AM",
+      "dateStarted": "Nov 12, 2016 9:32:27 PM",
+      "dateFinished": "Nov 12, 2016 9:32:27 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\n(clickstream_parsed\n .map(lambda parts: parts[2])\n .reduce(add))",
+      "dateUpdated": "Nov 10, 2016 9:32:54 AM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478574092696_1786944308",
+      "id": "20161107-220132_1816285552",
+      "dateCreated": "Nov 7, 2016 10:01:32 AM",
+      "dateStarted": "Nov 10, 2016 9:37:56 AM",
+      "dateFinished": "Nov 10, 2016 9:39:38 AM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\n\nHECK YEAH. From 1m18s to 9s! To be clear, this is a good speed up, but isn\u0027t a fair comparison to the original Python version.\n\nTo compare apples-to-apples there, we would need to load the entire data file into something like a list and do a sum which would also be ridiculously fast.\n\nHopefully the main point is coming across though. Although we\u0027re working with only a single gzip file locally, everything you\u0027ve done so far could instead process millions of gzip files across hundreds of servers **without changing a single line of code**. That\u0027s the power of Spark.\n\nOk, let\u0027s rehash what we\u0027ve learned so far.",
+      "dateUpdated": "Nov 12, 2016 9:33:02 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorHide": true,
+        "editorMode": "ace/mode/markdown"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478574147569_-2112208315",
+      "id": "20161107-220227_1043819962",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003eHECK YEAH. From 1m18s to 9s! To be clear, this is a good speed up, but isn\u0027t a fair comparison to the original Python version.\u003c/p\u003e\n\u003cp\u003eTo compare apples-to-apples there, we would need to load the entire data file into something like a list and do a sum which would also be ridiculously fast.\u003c/p\u003e\n\u003cp\u003eHopefully the main point is coming across though. Although we\u0027re working with only a single gzip file locally, everything you\u0027ve done so far could instead process millions of gzip files across hundreds of servers \u003cstrong\u003ewithout changing a single line of code\u003c/strong\u003e. That\u0027s the power of Spark.\u003c/p\u003e\n\u003cp\u003eOk, let\u0027s rehash what we\u0027ve learned so far.\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 7, 2016 10:02:27 AM",
+      "dateStarted": "Nov 12, 2016 9:33:01 PM",
+      "dateFinished": "Nov 12, 2016 9:33:01 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\n\nFiguring out the boss\u0027 second question \"What do people read on the site?\" can be translated as \"What are the top en.wikipedia.org articles?\".\n\nTo answer that, we\u0027ll need to explore another core Spark concept which is the key-value or pair RDD.\n\nPairRDDs differ from regular RDDs in that all elements are assumed to be two-element tuples or lists of `(key, value)`.\n\nLet\u0027s create a PairRDD that maps `curr_title -\u003e views` for our dataset.",
+      "dateUpdated": "Nov 12, 2016 9:32:51 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/markdown",
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478742542334_1099773527",
+      "id": "20161109-204902_599151766",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003eFiguring out the boss\u0027 second question \u0026ldquo;What do people read on the site?\u0026rdquo; can be translated as \u0026ldquo;What are the top en.wikipedia.org articles?\u0026ldquo;.\u003c/p\u003e\n\u003cp\u003eTo answer that, we\u0027ll need to explore another core Spark concept which is the key-value or pair RDD.\u003c/p\u003e\n\u003cp\u003ePairRDDs differ from regular RDDs in that all elements are assumed to be two-element tuples or lists of \u003ccode\u003e(key, value)\u003c/code\u003e.\u003c/p\u003e\n\u003cp\u003eLet\u0027s create a PairRDD that maps \u003ccode\u003ecurr_title -\u0026gt; views\u003c/code\u003e for our dataset.\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 9, 2016 8:49:02 AM",
+      "dateStarted": "Nov 12, 2016 9:32:51 PM",
+      "dateFinished": "Nov 12, 2016 9:32:51 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\n\n(clickstream_parsed\n .map(lambda parsed: (parsed[4], parsed[2]))\n .first())",
+      "dateUpdated": "Nov 10, 2016 9:32:54 AM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/python"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478743064843_1240739409",
+      "id": "20161109-205744_1312605228",
+      "dateCreated": "Nov 9, 2016 8:57:44 AM",
+      "dateStarted": "Nov 10, 2016 9:39:24 AM",
+      "dateFinished": "Nov 10, 2016 9:39:38 AM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\n\nCool, so we have a mapping of `curr_title -\u003e views`, now we know we want to do the equivalent of:\n\n```\nSELECT curr_title, SUM(views)\nFROM clickstream_parsed\nGROUP BY curr_title\nORDER BY SUM(views) DESC\nLIMIT 25\n```\n\nHow can we do that in Spark?",
+      "dateUpdated": "Nov 12, 2016 9:33:05 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/markdown",
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478812703235_1794295241",
+      "id": "20161110-161823_651379",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003eCool, so we have a mapping of \u003ccode\u003ecurr_title -\u0026gt; views\u003c/code\u003e, now we know we want to do the equivalent of:\u003c/p\u003e\n\u003cpre\u003e\u003ccode\u003eSELECT curr_title, SUM(views)\nFROM clickstream_parsed\nGROUP BY curr_title\nORDER BY SUM(views) DESC\nLIMIT 25\n\u003c/code\u003e\u003c/pre\u003e\n\u003cp\u003eHow can we do that in Spark?\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 10, 2016 4:18:23 AM",
+      "dateStarted": "Nov 12, 2016 9:33:05 PM",
+      "dateFinished": "Nov 12, 2016 9:33:05 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark \nfrom operator import add\n\npprint(clickstream_parsed\n      .map(lambda parsed: (parsed[4], parsed[2]))\n      .reduceByKey(add)\n      .top(25, key\u003dlambda (k, v): v))",
+      "dateUpdated": "Nov 12, 2016 5:11:31 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/python"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478812782348_1793415185",
+      "id": "20161110-161942_227148540",
+      "dateCreated": "Nov 10, 2016 4:19:42 AM",
+      "dateStarted": "Nov 10, 2016 9:39:38 AM",
+      "dateFinished": "Nov 10, 2016 9:40:16 AM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\n\nSweet! So no surprise that the top article was the `Main_Page`, but `Chris_Kyle` is a little surprising if you\u0027re not aware of who he is. \n\nChris Kyle was a US Navy Seal who died in Feb 2013 but was immortalized in the film American Sniper which premiered worldwide in mid-late January.\n\nThe interest in Charlie Hebdo correlates with the terrorist attacks against the satirical french magazine of the same name in January of 2015\n\nIn fact, most of the top pages, minus `Main_Page` seem to be correlated with news stories. People hear about a news event, maybe do a Google search for it and land at Wikipedia to learn more.\n\nOf course we haven\u0027t really validated the theory so let\u0027s try to do that for the `Chris_Kyle` article.\n\nIn SQL, we\u0027d want something like this:\n\n```\nSELECT curr_title, trafic_source, SUM(views)\nFROM clickstream\nWHERE curr_title \u003d \u0027Chris_Kyle\u0027\nGROUP BY curr_title, traffic_source\nORDER BY SUM(views) DESC\nLIMIT 100\n```\n\nReally all we\u0027re doing is adding another column to our group key. How would that translate to Spark?",
+      "dateUpdated": "Nov 12, 2016 9:33:10 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/markdown",
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478813057260_-1996960245",
+      "id": "20161110-162417_1179182725",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003eSweet! So no surprise that the top article was the \u003ccode\u003eMain_Page\u003c/code\u003e, but \u003ccode\u003eChris_Kyle\u003c/code\u003e is a little surprising if you\u0027re not aware of who he is.\u003c/p\u003e\n\u003cp\u003eChris Kyle was a US Navy Seal who died in Feb 2013 but was immortalized in the film American Sniper which premiered worldwide in mid-late January.\u003c/p\u003e\n\u003cp\u003eThe interest in Charlie Hebdo correlates with the terrorist attacks against the satirical french magazine of the same name in January of 2015\u003c/p\u003e\n\u003cp\u003eIn fact, most of the top pages, minus \u003ccode\u003eMain_Page\u003c/code\u003e seem to be correlated with news stories. People hear about a news event, maybe do a Google search for it and land at Wikipedia to learn more.\u003c/p\u003e\n\u003cp\u003eOf course we haven\u0027t really validated the theory so let\u0027s try to do that for the \u003ccode\u003eChris_Kyle\u003c/code\u003e article.\u003c/p\u003e\n\u003cp\u003eIn SQL, we\u0027d want something like this:\u003c/p\u003e\n\u003cpre\u003e\u003ccode\u003eSELECT curr_title, trafic_source, SUM(views)\nFROM clickstream\nWHERE curr_title \u003d \u0027Chris_Kyle\u0027\nGROUP BY curr_title, traffic_source\nORDER BY SUM(views) DESC\nLIMIT 100\n\u003c/code\u003e\u003c/pre\u003e\n\u003cp\u003eReally all we\u0027re doing is adding another column to our group key. How would that translate to Spark?\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 10, 2016 4:24:17 AM",
+      "dateStarted": "Nov 12, 2016 9:33:10 PM",
+      "dateFinished": "Nov 12, 2016 9:33:10 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\n\npprint(clickstream_parsed\n      .filter(lambda parsed: parsed[4] \u003d\u003d \u0027Chris_Kyle\u0027)\n      .map(lambda parsed: ((parsed[4], parsed[3]), parsed[2]))\n      .reduceByKey(add)\n      .top(10, key\u003dlambda (k, v): v))",
+      "dateUpdated": "Nov 10, 2016 9:32:54 AM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478813830909_-1716575175",
+      "id": "20161110-163710_732153347",
+      "dateCreated": "Nov 10, 2016 4:37:10 AM",
+      "dateStarted": "Nov 10, 2016 9:39:39 AM",
+      "dateFinished": "Nov 10, 2016 9:40:29 AM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\n\nAh cool, so Google is the primary referral source, but, as expected interest in the film American Sniper also lead to many folks reading up on Chris Kyle.\n\nAt this point, you may be wondering what exactly is going on under the hood with Spark when you finally press enter on the cell above. We\u0027ll demystify that a lot more in time, but to start, we\u0027re going to talk about a core concept in Spark programs, **the shuffle**.\n\nTo understand the shuffle, let\u0027s see what the DAG looks like for that final RDD. I\u0027ll make a slight modification to things and call `sortBy` instead of `top` since `sortBy` is a transformation that won\u0027t trigger execution.",
+      "dateUpdated": "Nov 12, 2016 9:33:15 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/markdown",
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478814607249_-1720691921",
+      "id": "20161110-165007_400840257",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003eAh cool, so Google is the primary referral source, but, as expected interest in the film American Sniper also lead to many folks reading up on Chris Kyle.\u003c/p\u003e\n\u003cp\u003eAt this point, you may be wondering what exactly is going on under the hood with Spark when you finally press enter on the cell above. We\u0027ll demystify that a lot more in time, but to start, we\u0027re going to talk about a core concept in Spark programs, \u003cstrong\u003ethe shuffle\u003c/strong\u003e.\u003c/p\u003e\n\u003cp\u003eTo understand the shuffle, let\u0027s see what the DAG looks like for that final RDD. I\u0027ll make a slight modification to things and call \u003ccode\u003esortBy\u003c/code\u003e instead of \u003ccode\u003etop\u003c/code\u003e since \u003ccode\u003esortBy\u003c/code\u003e is a transformation that won\u0027t trigger execution.\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 10, 2016 4:50:07 AM",
+      "dateStarted": "Nov 12, 2016 9:33:15 PM",
+      "dateFinished": "Nov 12, 2016 9:33:15 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark \n\nprint(clickstream_parsed\n      .filter(lambda parsed: parsed[4] \u003d\u003d \u0027Chris_Kyle\u0027)\n      .map(lambda parsed: ((parsed[4], parsed[3]), parsed[2]))\n      .reduceByKey(add)\n      .sortBy(lambda (k, v): v, ascending\u003dFalse)\n      .toDebugString())",
+      "dateUpdated": "Nov 10, 2016 9:32:54 AM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478815058790_-1219672233",
+      "id": "20161110-165738_624660842",
+      "dateCreated": "Nov 10, 2016 4:57:38 AM",
+      "dateStarted": "Nov 10, 2016 9:40:17 AM",
+      "dateFinished": "Nov 10, 2016 9:40:42 AM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\n\nWe just found out that PySpark pays an additional tax on performance due to object serialization and that there may be a solution out there. Truth is, there is in the form of DataFrames and Spark SQL. In fact, you\u0027ll often use an RDD only for some very basic data manipulation. In many cases, if your data is stored in the appropriate format, you can avoid RDDs entirely and load data directly into a DataFrame. We\u0027ll see this in a bit.\n\nIf DataFrames sound familiar to Pandas it\u0027s because they are. The API isn\u0027t identical, but there are tons of similarities. Just remember that under the hood, you\u0027re still dealing with RDDs in Spark. DataFrames are just higher level abstractions.\n\nThe great news is, we can very easily go from a RDD to a DataFrame and vice versa.\n\nSo, how do we create a DataFrame from our RDD?",
+      "dateUpdated": "Nov 12, 2016 9:33:18 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/markdown",
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478815138959_232062512",
+      "id": "20161110-165858_592239418",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003eWe just found out that PySpark pays an additional tax on performance due to object serialization and that there may be a solution out there. Truth is, there is in the form of DataFrames and Spark SQL. In fact, you\u0027ll often use an RDD only for some very basic data manipulation. In many cases, if your data is stored in the appropriate format, you can avoid RDDs entirely and load data directly into a DataFrame. We\u0027ll see this in a bit.\u003c/p\u003e\n\u003cp\u003eIf DataFrames sound familiar to Pandas it\u0027s because they are. The API isn\u0027t identical, but there are tons of similarities. Just remember that under the hood, you\u0027re still dealing with RDDs in Spark. DataFrames are just higher level abstractions.\u003c/p\u003e\n\u003cp\u003eThe great news is, we can very easily go from a RDD to a DataFrame and vice versa.\u003c/p\u003e\n\u003cp\u003eSo, how do we create a DataFrame from our RDD?\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 10, 2016 4:58:58 AM",
+      "dateStarted": "Nov 12, 2016 9:33:18 PM",
+      "dateFinished": "Nov 12, 2016 9:33:18 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\n# Import some schema definition helpers. You can ask Spark to implicitly determine schema, but it\u0027s slower and more error prone\nfrom pyspark.sql.types import StructType, StructField, StringType, IntegerType\n\nclickstream_schema \u003d StructType([\n    StructField(\u0027prev_id\u0027, StringType()),\n    StructField(\u0027curr_id\u0027, StringType()),\n    StructField(\u0027views\u0027, IntegerType()),\n    StructField(\u0027prev_title\u0027, StringType()),\n    StructField(\u0027curr_title\u0027, StringType()),\n])\n\nclickstream_df \u003d sqlContext.createDataFrame(clickstream_parsed, clickstream_schema)",
+      "dateUpdated": "Nov 12, 2016 5:17:29 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/scala",
+        "editorHide": false
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478400198710_1622450405",
+      "id": "20161105-224318_930617102",
+      "dateCreated": "Nov 5, 2016 10:43:18 AM",
+      "dateStarted": "Nov 10, 2016 10:19:54 PM",
+      "dateFinished": "Nov 10, 2016 10:20:04 PM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\n\npprint(clickstream_df.take(5))",
+      "dateUpdated": "Nov 10, 2016 10:22:44 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478831361409_768888663",
+      "id": "20161110-212921_309910808",
+      "dateCreated": "Nov 10, 2016 9:29:21 AM",
+      "dateStarted": "Nov 10, 2016 10:22:45 PM",
+      "dateFinished": "Nov 10, 2016 10:22:45 PM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\n\nAh cool. So a DataFrame is kind of like a collection of `namedtuple`s that are also strongly typed.\n\nJust to get familiar, let\u0027s do some of ths stuff we\u0027ve already done with RDDs to get comfy with DataFrames.",
+      "dateUpdated": "Nov 12, 2016 9:33:22 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/markdown",
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478832334833_30336576",
+      "id": "20161110-214534_2099202807",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003eAh cool. So a DataFrame is kind of like a collection of \u003ccode\u003enamedtuple\u003c/code\u003es that are also strongly typed.\u003c/p\u003e\n\u003cp\u003eJust to get familiar, let\u0027s do some of ths stuff we\u0027ve already done with RDDs to get comfy with DataFrames.\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 10, 2016 9:45:34 AM",
+      "dateStarted": "Nov 12, 2016 9:33:22 PM",
+      "dateFinished": "Nov 12, 2016 9:33:22 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\nfrom pyspark.sql import functions as F\n\nnum_rows \u003d clickstream_df.count()\nnum_views \u003d clickstream_df.groupby().sum(\u0027views\u0027).collect()[0][\u0027sum(views)\u0027]\n\nprint(\u0027Num rows:  {:,}\u0027.format(num_rows))\nprint(\u0027Num views: {:,}\u0027.format(num_views))",
+      "dateUpdated": "Nov 12, 2016 5:18:48 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478832410048_1610038939",
+      "id": "20161110-214650_1610773823",
+      "dateCreated": "Nov 10, 2016 9:46:50 AM",
+      "dateStarted": "Nov 10, 2016 10:37:15 PM",
+      "dateFinished": "Nov 10, 2016 10:41:45 PM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\n\nOk cool, we can count rows and sum things. Why is this better than what we had?\n\nIn the first version, we had parsing and reducing (summing) being done in Python. This is precisely what leads to the serialization overhead I mentioned before. When we write ` clickstream_df.groupby().sum(\u0027views\u0027)`, we\u0027re doing the same thing functionally, but the difference is the summing itself is now done entirely within the JVM instead of making roundtrips to Python and then back to the JVM. This can often result in massive performance improvements (especially when datasets are already cached).\n\nDataFrames are cool and have an [API](http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.DataFrame) that I encourage you to study. However, we\u0027ve kind of had an overload of \"new stuff\" in this tutorial so far. What\u0027s great about DataFrames is that they simultaneously enable another feature in Spark that I\u0027d bet you\u0027re already familiar with - SQL.",
+      "dateUpdated": "Nov 12, 2016 9:33:25 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/markdown",
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478835716370_-311097163",
+      "id": "20161110-224156_98990544",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003eOk cool, we can count rows and sum things. Why is this better than what we had?\u003c/p\u003e\n\u003cp\u003eIn the first version, we had parsing and reducing (summing) being done in Python. This is precisely what leads to the serialization overhead I mentioned before. When we write \u003ccode\u003eclickstream_df.groupby().sum(\u0027views\u0027)\u003c/code\u003e, we\u0027re doing the same thing functionally, but the difference is the summing itself is now done entirely within the JVM instead of making roundtrips to Python and then back to the JVM. This can often result in massive performance improvements (especially when datasets are already cached).\u003c/p\u003e\n\u003cp\u003eDataFrames are cool and have an \u003ca href\u003d\"http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.DataFrame\"\u003eAPI\u003c/a\u003e that I encourage you to study. However, we\u0027ve kind of had an overload of \u0026ldquo;new stuff\u0026rdquo; in this tutorial so far. What\u0027s great about DataFrames is that they simultaneously enable another feature in Spark that I\u0027d bet you\u0027re already familiar with - SQL.\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 10, 2016 10:41:56 PM",
+      "dateStarted": "Nov 12, 2016 9:33:25 PM",
+      "dateFinished": "Nov 12, 2016 9:33:25 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\n# create a SQL table called \"clickstream\", Spark is now acting as a quasi-relational database for you\nclickstream_df.createOrReplaceTempView(\u0027clickstream\u0027)",
+      "dateUpdated": "Nov 12, 2016 5:21:08 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/python"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478836055444_-1357338336",
+      "id": "20161110-224735_252506842",
+      "dateCreated": "Nov 10, 2016 10:47:35 PM",
+      "dateStarted": "Nov 10, 2016 10:48:06 PM",
+      "dateFinished": "Nov 10, 2016 10:48:07 PM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%sql\n-- Now we can query \"clickstream\" as if it were just a regular SQL table\n\nSELECT * FROM clickstream LIMIT 5",
+      "dateUpdated": "Nov 10, 2016 10:49:51 PM",
+      "config": {
+        "colWidth": 8.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/sql"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478836090162_-351173990",
+      "id": "20161110-224810_2048402765",
+      "dateCreated": "Nov 10, 2016 10:48:10 PM",
+      "dateStarted": "Nov 10, 2016 10:48:33 PM",
+      "dateFinished": "Nov 10, 2016 10:48:34 PM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\n\n\nBecause SQL returns structured data (thanks to the schema you specified above), Zeppelin can \"autoformat\" the result set.",
+      "dateUpdated": "Nov 12, 2016 9:33:37 PM",
+      "config": {
+        "colWidth": 4.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/markdown",
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478836119888_-869430235",
+      "id": "20161110-224839_1285388846",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003eBecause SQL returns structured data (thanks to the schema you specified above), Zeppelin can \u0026ldquo;autoformat\u0026rdquo; the result set.\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 10, 2016 10:48:39 PM",
+      "dateStarted": "Nov 12, 2016 9:33:33 PM",
+      "dateFinished": "Nov 12, 2016 9:33:33 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\n\nThat is SO much better. Just a reminder, we did file reading in Java, our parsing in Python but the aggregation and filtering specified in our SQL query ran entirely in Java.\n\nThis is a marriage made in heaven. Manipulate data in Python, then have APIs that let us analyze data in Python or in SQL and not have to sacrifice performance.\n\nWe\u0027ve answered all the questions our boss wanted but let\u0027s explore a few others and have things consolidated in one place:\n\n* How many total views were there?\n* How many unique articles were viewed?\n* What are the top 10 articles?\n* What are the top 10 internal traffic sources?\n* What are the top 10 external sources?\n* How much traffic does a \"normal\" article get?",
+      "dateUpdated": "Nov 12, 2016 9:33:39 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/markdown",
+        "editorHide": true,
+        "title": false
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478836439775_-598306498",
+      "id": "20161110-225359_2037453172",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003eThat is SO much better. Just a reminder, we did file reading in Java, our parsing in Python but the aggregation and filtering specified in our SQL query ran entirely in Java.\u003c/p\u003e\n\u003cp\u003eThis is a marriage made in heaven. Manipulate data in Python, then have APIs that let us analyze data in Python or in SQL and not have to sacrifice performance.\u003c/p\u003e\n\u003cp\u003eWe\u0027ve answered all the questions our boss wanted but let\u0027s explore a few others and have things consolidated in one place:\u003c/p\u003e\n\u003cul\u003e\n\u003cli\u003eHow many total views were there?\u003c/li\u003e\n\u003cli\u003eHow many unique articles were viewed?\u003c/li\u003e\n\u003cli\u003eWhat are the top 10 articles?\u003c/li\u003e\n\u003cli\u003eWhat are the top 10 internal traffic sources?\u003c/li\u003e\n\u003cli\u003eWhat are the top 10 external sources?\u003c/li\u003e\n\u003cli\u003eHow much traffic does a \u0026ldquo;normal\u0026rdquo; article get?\u003c/li\u003e\n\u003c/ul\u003e\n"
+      },
+      "dateCreated": "Nov 10, 2016 10:53:59 PM",
+      "dateStarted": "Nov 12, 2016 9:33:39 PM",
+      "dateFinished": "Nov 12, 2016 9:33:39 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "title": "How many total views?",
+      "text": "%sql\nSELECT SUM(views) FROM clickstream",
+      "dateUpdated": "Nov 12, 2016 1:16:19 PM",
+      "config": {
+        "colWidth": 3.0,
+        "graph": {
+          "mode": "table",
+          "height": 324.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/sql",
+        "title": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478884127522_-1765316878",
+      "id": "20161111-120847_2010603219",
+      "dateCreated": "Nov 11, 2016 12:08:47 PM",
+      "dateStarted": "Nov 11, 2016 12:09:07 PM",
+      "dateFinished": "Nov 11, 2016 12:10:53 PM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "title": "How many unique articles were viewed?",
+      "text": "%pyspark\nfrom pyspark.sql import functions as F\n\nprint(\u0027%table\u0027)\nprint(\u0027unique_articles\u0027)\nprint(clickstream_df\n      .agg(F.approxCountDistinct(clickstream_df.curr_id)\n           .alias(\u0027unique_articles\u0027))\n      .first()[\u0027unique_articles\u0027])",
+      "dateUpdated": "Nov 11, 2016 12:55:52 PM",
+      "config": {
+        "colWidth": 4.0,
+        "graph": {
+          "mode": "table",
+          "height": 233.0,
+          "optionOpen": false,
+          "keys": [
+            {
+              "name": "unique_articles",
+              "index": 0.0,
+              "aggr": "sum"
+            }
+          ],
+          "values": [],
+          "groups": [],
+          "scatter": {
+            "xAxis": {
+              "name": "unique_articles",
+              "index": 0.0,
+              "aggr": "sum"
+            }
+          }
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/sql",
+        "title": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478884164948_1059017528",
+      "id": "20161111-120924_1352555215",
+      "dateCreated": "Nov 11, 2016 12:09:24 PM",
+      "dateStarted": "Nov 11, 2016 12:16:21 PM",
+      "dateFinished": "Nov 11, 2016 12:18:02 PM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "title": "What are the top 10 articles?",
+      "text": "%sql\nSELECT curr_title, sum(views) AS views\nFROM clickstream\nWHERE curr_title \u003c\u003e \u0027Main_Page\u0027\nGROUP BY curr_title\nORDER BY 2 DESC\nLIMIT 10",
+      "dateUpdated": "Nov 12, 2016 1:16:19 PM",
+      "config": {
+        "colWidth": 5.0,
+        "graph": {
+          "mode": "multiBarChart",
+          "height": 283.0,
+          "optionOpen": false,
+          "keys": [
+            {
+              "name": "curr_title",
+              "index": 0.0,
+              "aggr": "sum"
+            }
+          ],
+          "values": [
+            {
+              "name": "views",
+              "index": 1.0,
+              "aggr": "sum"
+            }
+          ],
+          "groups": [],
+          "scatter": {
+            "xAxis": {
+              "name": "curr_title",
+              "index": 0.0,
+              "aggr": "sum"
+            },
+            "yAxis": {
+              "name": "views",
+              "index": 1.0,
+              "aggr": "sum"
+            }
+          }
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/sql",
+        "title": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478884744644_1346056055",
+      "id": "20161111-121904_1358541289",
+      "dateCreated": "Nov 11, 2016 12:19:04 PM",
+      "dateStarted": "Nov 11, 2016 12:58:01 PM",
+      "dateFinished": "Nov 11, 2016 12:59:57 PM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "title": "What are the top 10 internal sources?",
+      "text": "%sql\nSELECT prev_title, SUM(views)\nFROM clickstream\nWHERE prev_title NOT LIKE \u0027other%\u0027\nGROUP BY prev_title\nORDER BY 2 DESC\nLIMIT 10",
+      "dateUpdated": "Nov 12, 2016 1:16:19 PM",
+      "config": {
+        "colWidth": 6.0,
+        "graph": {
+          "mode": "table",
+          "height": 294.0,
+          "optionOpen": false,
+          "keys": [
+            {
+              "name": "prev_title",
+              "index": 0.0,
+              "aggr": "sum"
+            }
+          ],
+          "values": [
+            {
+              "name": "sum(views)",
+              "index": 1.0,
+              "aggr": "sum"
+            }
+          ],
+          "groups": [],
+          "scatter": {
+            "xAxis": {
+              "name": "prev_title",
+              "index": 0.0,
+              "aggr": "sum"
+            },
+            "yAxis": {
+              "name": "sum(views)",
+              "index": 1.0,
+              "aggr": "sum"
+            }
+          }
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/sql",
+        "title": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478884959208_1074144208",
+      "id": "20161111-122239_1445627085",
+      "dateCreated": "Nov 11, 2016 12:22:39 PM",
+      "dateStarted": "Nov 11, 2016 12:26:26 PM",
+      "dateFinished": "Nov 11, 2016 12:28:06 PM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "title": "What\u0027re the top 10 external sources?",
+      "text": "%sql\nSELECT prev_title, SUM(views)\nFROM clickstream\nWHERE prev_title LIKE \u0027other%\u0027\nGROUP BY prev_title\nORDER BY 2 DESC\nLIMIT 10",
+      "dateUpdated": "Nov 12, 2016 1:16:19 PM",
+      "config": {
+        "colWidth": 6.0,
+        "graph": {
+          "mode": "multiBarChart",
+          "height": 299.0,
+          "optionOpen": false,
+          "keys": [
+            {
+              "name": "prev_title",
+              "index": 0.0,
+              "aggr": "sum"
+            }
+          ],
+          "values": [
+            {
+              "name": "sum(views)",
+              "index": 1.0,
+              "aggr": "sum"
+            }
+          ],
+          "groups": [],
+          "scatter": {
+            "xAxis": {
+              "name": "prev_title",
+              "index": 0.0,
+              "aggr": "sum"
+            },
+            "yAxis": {
+              "name": "sum(views)",
+              "index": 1.0,
+              "aggr": "sum"
+            }
+          }
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/sql",
+        "title": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478885294133_-331837187",
+      "id": "20161111-122814_1976094813",
+      "dateCreated": "Nov 11, 2016 12:28:14 PM",
+      "dateStarted": "Nov 11, 2016 12:28:50 PM",
+      "dateFinished": "Nov 11, 2016 12:30:19 PM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\n\n# What does a \"normal\" article look like on English wikipedia in terms of total traffic?\nquantiles \u003d  [0.0, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 1.0]\nrelative_error \u003d 0.05\n\nres \u003d (clickstream_df\n       .groupby(\u0027curr_id\u0027)\n       .sum(\u0027views\u0027)\n       .approxQuantile(\u0027sum(views)\u0027, quantiles, relative_error))\n\nres \u003d dict(zip([str(q) for q in quantiles], res))\n\nprint(\u0027%table\u0027)\nprint(\u0027pct\\tcount\u0027)\nfor k, v in sorted(res.items(), key\u003dlambda (k, v): float(k)):\n    print(\u0027\\t\u0027.join([k, str(v)]))",
+      "dateUpdated": "Nov 11, 2016 1:04:13 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [
+            {
+              "name": "pct",
+              "index": 0.0,
+              "aggr": "sum"
+            }
+          ],
+          "values": [
+            {
+              "name": "count",
+              "index": 1.0,
+              "aggr": "sum"
+            }
+          ],
+          "groups": [],
+          "scatter": {
+            "xAxis": {
+              "name": "pct",
+              "index": 0.0,
+              "aggr": "sum"
+            },
+            "yAxis": {
+              "name": "count",
+              "index": 1.0,
+              "aggr": "sum"
+            }
+          }
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478401946302_1316317807",
+      "id": "20161105-231226_1710122048",
+      "dateCreated": "Nov 5, 2016 11:12:26 AM",
+      "dateStarted": "Nov 11, 2016 11:20:35 AM",
+      "dateFinished": "Nov 11, 2016 11:20:35 AM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "title": "For the top 10 articles, what were the top 5 referrers?",
+      "text": "%sql\nSELECT curr_title, sum(views) AS views\nFROM clickstream\nWHERE curr_title \u003c\u003e \u0027Main_Page\u0027\nGROUP BY curr_title\nORDER BY 2 DESC\nLIMIT 10",
+      "dateUpdated": "Nov 12, 2016 5:21:53 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/sql",
+        "title": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478887479246_1546212495",
+      "id": "20161111-130439_376310339",
+      "dateCreated": "Nov 11, 2016 1:04:39 PM",
+      "dateStarted": "Nov 12, 2016 5:21:53 PM",
+      "dateFinished": "Nov 12, 2016 5:21:56 PM",
+      "status": "ERROR",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\n\nUp until this point, we\u0027ve only covered loading something into Spark, transforming it a little and then analyzing it.\n\nBut we can also save Spark data to plenty of destinations (e.g. databases, file systems) and in virtually any format.\n\nIf you plan to work with data outside of Spark, saving in a format like JSON makes sense for interoperatbility. If you\u0027re looking to save a DataFrame for future use in Spark, you\u0027re far better to use the [Parquet](https://parquet.apache.org/) format. Parquet has benefits like: binary + column-stride storage (meaning super efficient to load just a few columns of data) and metadata stored along side (things like column data types and even summary stats like number of rows).\n\nLet\u0027s say we were only interested in entries in this dataset where `prev_title\u003d\u0027other-empty\u0027`.",
+      "dateUpdated": "Nov 12, 2016 9:33:53 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 159.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/markdown",
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478400327508_439917821",
+      "id": "20161105-224527_1440402325",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003eUp until this point, we\u0027ve only covered loading something into Spark, transforming it a little and then analyzing it.\u003c/p\u003e\n\u003cp\u003eBut we can also save Spark data to plenty of destinations (e.g. databases, file systems) and in virtually any format.\u003c/p\u003e\n\u003cp\u003eIf you plan to work with data outside of Spark, saving in a format like JSON makes sense for interoperatbility. If you\u0027re looking to save a DataFrame for future use in Spark, you\u0027re far better to use the \u003ca href\u003d\"https://parquet.apache.org/\"\u003eParquet\u003c/a\u003e format. Parquet has benefits like: binary + column-stride storage (meaning super efficient to load just a few columns of data) and metadata stored along side (things like column data types and even summary stats like number of rows).\u003c/p\u003e\n\u003cp\u003eLet\u0027s say we were only interested in entries in this dataset where \u003ccode\u003eprev_title\u003d\u0027other-empty\u0027\u003c/code\u003e.\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 5, 2016 10:45:27 AM",
+      "dateStarted": "Nov 12, 2016 9:33:53 PM",
+      "dateFinished": "Nov 12, 2016 9:33:53 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\nimport os\nimport tempfile\n\ntemp_file \u003d os.path.join(tempfile.mkdtemp(), \u0027wikipedia_other_empty.json\u0027)\nclickstream_df[clickstream_df[\u0027prev_title\u0027] \u003d\u003d \u0027other-empty\u0027].write.save(temp_file, format\u003d\u0027json\u0027)\nprint(temp_file)",
+      "dateUpdated": "Nov 12, 2016 2:42:39 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/python"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478880626899_651147588",
+      "id": "20161111-111026_819843125",
+      "dateCreated": "Nov 11, 2016 11:10:26 AM",
+      "dateStarted": "Nov 12, 2016 2:42:39 PM",
+      "dateFinished": "Nov 12, 2016 2:44:02 PM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%sh\nls -lah /path/to/tmpfile/wikipedia_other_empty.json",
+      "dateUpdated": "Nov 12, 2016 9:34:20 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/sh"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478979759836_1423195420",
+      "id": "20161112-144239_1936657561",
+      "dateCreated": "Nov 12, 2016 2:42:39 PM",
+      "dateStarted": "Nov 12, 2016 2:44:57 PM",
+      "dateFinished": "Nov 12, 2016 2:44:57 PM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\nWait, why is our output file a folder and not a file?\n\nIf you remember, the DataFrame had 8 partitions. Spark wrote these partitions out in parallel which, in our case, is kind of annoying because it\u0027ll be harder for a downstream program that isn\u0027t Spark to read that data. So, after we filter, let\u0027s reduce the number of partitions to 1 and then write it out so we get a single file instead of multiple.",
+      "dateUpdated": "Nov 12, 2016 9:34:14 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/markdown",
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478979878199_974932303",
+      "id": "20161112-144438_1880153658",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003eWait, why is our output file a folder and not a file?\u003c/p\u003e\n\u003cp\u003eIf you remember, the DataFrame had 8 partitions. Spark wrote these partitions out in parallel which, in our case, is kind of annoying because it\u0027ll be harder for a downstream program that isn\u0027t Spark to read that data. So, after we filter, let\u0027s reduce the number of partitions to 1 and then write it out so we get a single file instead of multiple.\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 12, 2016 2:44:38 PM",
+      "dateStarted": "Nov 12, 2016 9:34:14 PM",
+      "dateFinished": "Nov 12, 2016 9:34:14 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%pyspark\ntemp_file \u003d os.path.join(tempfile.mkdtemp(), \u0027wikipedia_other_empty.json\u0027)\n(clickstream_df[clickstream_df[\u0027prev_title\u0027] \u003d\u003d \u0027other-empty\u0027]\n .coalesce(1)\n .write.save(temp_file, format\u003d\u0027json\u0027))\nprint(temp_file)",
+      "dateUpdated": "Nov 12, 2016 2:51:50 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/python"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478980201177_1196823505",
+      "id": "20161112-145001_42119916",
+      "dateCreated": "Nov 12, 2016 2:50:01 PM",
+      "dateStarted": "Nov 12, 2016 2:51:50 PM",
+      "dateFinished": "Nov 12, 2016 2:55:45 PM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%sh\nls -lah /path/to/tmpfile/wikipedia_other_empty.json",
+      "dateUpdated": "Nov 12, 2016 9:35:56 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/sh"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478980310487_1788688262",
+      "id": "20161112-145150_1126443405",
+      "dateCreated": "Nov 12, 2016 2:51:50 PM",
+      "dateStarted": "Nov 12, 2016 2:55:55 PM",
+      "dateFinished": "Nov 12, 2016 2:55:55 PM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%sh\nhead /path/to/tmpfile/wikipedia_other_empty.json/part-r-00000-e2e3d0b8-5b0a-46cf-899e-4cbd4bd2e563.json",
+      "dateUpdated": "Nov 12, 2016 9:35:56 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/sh"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478980555056_2080280311",
+      "id": "20161112-145555_105429055",
+      "dateCreated": "Nov 12, 2016 2:55:55 PM",
+      "dateStarted": "Nov 12, 2016 2:56:19 PM",
+      "dateFinished": "Nov 12, 2016 2:56:19 PM",
+      "status": "FINISHED",
+      "errorMessage": "",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "%md\nCongrats! You\u0027ve answered all the boss\u0027 questions.\n\nNow let\u0027s understand a bit more about Spark internals and how we\u0027d turn something like this into a production-ready program.",
+      "dateUpdated": "Nov 12, 2016 9:35:49 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/markdown",
+        "editorHide": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1478980649594_-95520691",
+      "id": "20161112-145729_363701543",
+      "result": {
+        "code": "SUCCESS",
+        "type": "HTML",
+        "msg": "\u003cp\u003eCongrats! You\u0027ve answered all the boss\u0027 questions.\u003c/p\u003e\n\u003cp\u003eNow let\u0027s understand a bit more about Spark internals and how we\u0027d turn something like this into a production-ready program.\u003c/p\u003e\n"
+      },
+      "dateCreated": "Nov 12, 2016 2:57:29 PM",
+      "dateStarted": "Nov 12, 2016 9:35:46 PM",
+      "dateFinished": "Nov 12, 2016 9:35:46 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "",
+      "dateUpdated": "Nov 12, 2016 9:35:56 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1479004546181_154780706",
+      "id": "20161112-213546_947790463",
+      "dateCreated": "Nov 12, 2016 9:35:46 PM",
+      "status": "READY",
+      "progressUpdateIntervalMs": 500
+    }
+  ],
+  "name": "PyCon Canada 2016 - PySpark Tutorial",
+  "id": "2C1MWGRFG",
+  "angularObjects": {
+    "2C3CRPXD1:shared_process": [],
+    "2C2CAWWQ4:shared_process": [],
+    "2BZ4H6AVG:shared_process": [],
+    "2BZ7HS5Q6:shared_process": [],
+    "2C29XPEMP:shared_process": [],
+    "2BZ15F581:shared_process": [],
+    "2C178ED5G:shared_process": [],
+    "2C3JZBD9G:shared_process": [],
+    "2C2TBUT46:shared_process": [],
+    "2C2WYJQM9:shared_process": [],
+    "2C23HGFNG:shared_process": [],
+    "2BZMDMPSG:shared_process": [],
+    "2BZ4DB16C:shared_process": [],
+    "2BYXCMTRK:shared_process": [],
+    "2C1424BYW:shared_process": [],
+    "2BZJGUYJ2:shared_process": [],
+    "2C1T3ZP52:shared_process": [],
+    "2BZ6QG3XB:shared_process": []
+  },
+  "config": {
+    "looknfeel": "default"
+  },
+  "info": {}
+}
